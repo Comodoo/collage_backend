@@ -1,0 +1,13 @@
+vendor/
+.env
+.env.production
+node_modules/
+pm-debug.log
+.phpunit.result.cache
+homestead.json
+homestead.yaml
+.vagrant/
+.storage/
+public/storage
+public/hot
+.blackfire.ini
