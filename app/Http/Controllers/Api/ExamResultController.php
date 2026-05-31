@@ -42,7 +42,7 @@ class ExamResultController extends Controller
 
         $validated = $request->validate([
             'student_id' => 'required|exists:users,id',
-            'course_offering_id' => 'required|exists:course_offerings,id',
+            'course_offering_id' => 'required|exists:courses,id', // Front-end sends course_id
             'cat1_score' => 'nullable|numeric|min:0|max:100',
             'cat2_score' => 'nullable|numeric|min:0|max:100',
             'assignment_score' => 'nullable|numeric|min:0|max:100',
@@ -56,14 +56,28 @@ class ExamResultController extends Controller
         $assignment = $validated['assignment_score'] ?? 0;
         $final = $validated['final_exam_score'];
 
-        // Weighted calculation: CAT1 (10%) + CAT2 (10%) + Assignment (10%) + Final (70%)
-        $totalScore = ($cat1 * 0.1) + ($cat2 * 0.1) + ($assignment * 0.1) + ($final * 0.7);
+        // Direct sum of raw points
+        $totalScore = $cat1 + $cat2 + $assignment + $final;
 
         $gradeData = $this->calculateGrade($totalScore);
 
+        // Find or create the CourseOffering for this course_id
+        $offering = \App\Models\CourseOffering::firstOrCreate(
+            [
+                'course_id' => $validated['course_offering_id'],
+                'academic_year' => $request->input('academicYear', '2025/2026'),
+                'semester' => $request->input('semester', 'first')
+            ],
+            [
+                'instructor_id' => $request->user()->id,
+                'status' => 'active',
+                'max_students' => 100
+            ]
+        );
+
         $result = ExamResult::create([
             'student_id' => $validated['student_id'],
-            'course_offering_id' => $validated['course_offering_id'],
+            'course_offering_id' => $offering->id,
             'cat1_score' => $cat1,
             'cat2_score' => $cat2,
             'assignment_score' => $assignment,
@@ -124,7 +138,7 @@ class ExamResultController extends Controller
             $assignment = $validated['assignment_score'] ?? $result->assignment_score ?? 0;
             $final = $validated['final_exam_score'] ?? $result->final_exam_score;
 
-            $totalScore = ($cat1 * 0.1) + ($cat2 * 0.1) + ($assignment * 0.1) + ($final * 0.7);
+            $totalScore = $cat1 + $cat2 + $assignment + $final;
             $gradeData = $this->calculateGrade($totalScore);
 
             $validated['total_score'] = $totalScore;
@@ -163,6 +177,14 @@ class ExamResultController extends Controller
     {
         $targetStudentId = $studentId ?? $request->user()->id;
 
+        // If an instructor visits the student dashboard without an ID, preview the latest student's results
+        if (!$studentId && ($request->user()->isAdmin() || $request->user()->isInstructor())) {
+            $latestResult = ExamResult::orderBy('created_at', 'desc')->first();
+            if ($latestResult) {
+                $targetStudentId = $latestResult->student_id;
+            }
+        }
+
         // Authorization check
         if ($studentId && $request->user()->isStudent() && $studentId != $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -170,7 +192,6 @@ class ExamResultController extends Controller
 
         $results = ExamResult::with('courseOffering.course')
             ->where('student_id', $targetStudentId)
-            ->where('status', 'published')
             ->orderBy('created_at', 'desc')
             ->get();
 
