@@ -253,4 +253,45 @@ class RegistrationController extends Controller
             'registration' => $registration,
         ]);
     }
+
+    public function update(Request $request, $id)
+    {
+        $registration = Registration::findOrFail($id);
+
+        // Simple validation, assuming these are the fields being sent
+        $validated = $request->validate([
+            'first_name' => 'sometimes|required|string|max:255',
+            'last_name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|email',
+            'phone' => 'sometimes|required|string|min:9',
+            'address' => 'sometimes|required|string',
+            'city' => 'sometimes|required|string',
+            'country' => 'sometimes|required|string',
+            'guardian_name' => 'sometimes|required|string',
+            'guardian_phone' => 'sometimes|required|string',
+        ]);
+
+        $registration->update($validated);
+
+        return response()->json([
+            'message' => 'Registration updated successfully',
+            'registration' => $registration,
+        ]);
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $registration = Registration::findOrFail($id);
+        
+        // Optional: Check authorization here, e.g., if isAdmin()
+        // if (!$request->user()->isAdmin()) {
+        //     return response()->json(['message' => 'Unauthorized'], 403);
+        // }
+
+        $registration->delete();
+
+        return response()->json([
+            'message' => 'Registration deleted successfully',
+        ]);
+    }
 }

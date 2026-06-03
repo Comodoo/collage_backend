@@ -173,6 +173,19 @@ class ExamResultController extends Controller
         ]);
     }
 
+    public function destroy(Request $request, $id)
+    {
+        if (!$request->user()->isInstructor() && !$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $result = ExamResult::findOrFail($id);
+
+        $result->delete();
+
+        return response()->json(['message' => 'Exam result deleted successfully']);
+    }
+
     public function getStudentResults(Request $request, $studentId = null)
     {
         $targetStudentId = $studentId ?? $request->user()->id;

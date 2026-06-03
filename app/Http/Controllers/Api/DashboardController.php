@@ -36,4 +36,39 @@ class DashboardController extends Controller
             'failedStudents' => 0,
         ]);
     }
+    public function accountantStats(Request $request)
+    {
+        if (!$request->user() || (!$request->user()->isAdmin() && !$request->user()->isAccountant())) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $today = now()->startOfDay();
+        $thisMonth = now()->startOfMonth();
+
+        $totalPaymentsToday = Payment::where('status', 'completed')
+            ->where(function($q) use ($today) {
+                $q->where('paid_at', '>=', $today)
+                  ->orWhere('created_at', '>=', $today);
+            })
+            ->sum('amount');
+
+        $pendingVerifications = Payment::where('status', 'pending')
+            ->count();
+
+        $activeStudents = Registration::where('status', 'approved')->count();
+
+        $monthlyRevenue = Payment::where('status', 'completed')
+            ->where(function($q) use ($thisMonth) {
+                $q->where('paid_at', '>=', $thisMonth)
+                  ->orWhere('created_at', '>=', $thisMonth);
+            })
+            ->sum('amount');
+
+        return response()->json([
+            'totalPaymentsToday' => $totalPaymentsToday,
+            'pendingVerifications' => $pendingVerifications,
+            'activeStudents' => $activeStudents,
+            'monthlyRevenue' => $monthlyRevenue,
+        ]);
+    }
 }

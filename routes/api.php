@@ -71,13 +71,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/staff/{id}', [StaffController::class, 'update']);
     Route::delete('/staff/{id}', [StaffController::class, 'destroy']);
 
-    // Admin Dashboard
+    // Admin & Accountant Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+    Route::get('/dashboard/accountant-stats', [DashboardController::class, 'accountantStats']);
 
     // Registrations
     Route::get('/registrations', [RegistrationController::class, 'index']);
     Route::post('/registrations', [RegistrationController::class, 'store']);
     Route::get('/registrations/{id}', [RegistrationController::class, 'show']);
+    Route::put('/registrations/{id}', [RegistrationController::class, 'update']);
+    Route::delete('/registrations/{id}', [RegistrationController::class, 'destroy']);
     Route::post('/registrations/{id}/approve', [RegistrationController::class, 'approve']);
     Route::post('/registrations/{id}/reject', [RegistrationController::class, 'reject']);
 
@@ -93,6 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/exam-results', [ExamResultController::class, 'store']);
     Route::get('/exam-results/{id}', [ExamResultController::class, 'show']);
     Route::put('/exam-results/{id}', [ExamResultController::class, 'update']);
+    Route::delete('/exam-results/{id}', [ExamResultController::class, 'destroy']);
     Route::post('/exam-results/{id}/publish', [ExamResultController::class, 'publish']);
     Route::get('/student-results', [ExamResultController::class, 'getStudentResults']);
     Route::get('/students/{studentId}/results', [ExamResultController::class, 'getStudentResults']);
