@@ -117,8 +117,8 @@ class ExamResultController extends Controller
 
         $result = ExamResult::findOrFail($id);
 
-        if ($result->status === 'published' && !$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Cannot modify published results'], 403);
+        if (($result->status === 'published' || $result->status === 'submitted') && !$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Cannot modify submitted or published results'], 403);
         }
 
         $validated = $request->validate([
@@ -151,6 +151,28 @@ class ExamResultController extends Controller
         return response()->json([
             'message' => 'Exam result updated successfully',
             'result' => $result->load(['student', 'courseOffering.course']),
+        ]);
+    }
+
+    public function submit(Request $request, $id)
+    {
+        if (!$request->user()->isInstructor() && !$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $result = ExamResult::findOrFail($id);
+
+        if ($result->status !== 'draft') {
+            return response()->json(['message' => 'Only draft results can be submitted'], 400);
+        }
+
+        $result->update([
+            'status' => 'submitted',
+        ]);
+
+        return response()->json([
+            'message' => 'Exam result submitted successfully',
+            'result' => $result,
         ]);
     }
 

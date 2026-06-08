@@ -97,6 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/exam-results/{id}', [ExamResultController::class, 'show']);
     Route::put('/exam-results/{id}', [ExamResultController::class, 'update']);
     Route::delete('/exam-results/{id}', [ExamResultController::class, 'destroy']);
+    Route::post('/exam-results/{id}/submit', [ExamResultController::class, 'submit']);
     Route::post('/exam-results/{id}/publish', [ExamResultController::class, 'publish']);
     Route::get('/student-results', [ExamResultController::class, 'getStudentResults']);
     Route::get('/students/{studentId}/results', [ExamResultController::class, 'getStudentResults']);
