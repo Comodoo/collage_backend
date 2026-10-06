@@ -36,7 +36,7 @@ class ExamResultController extends Controller
 
     public function store(Request $request)
     {
-        if (!$request->user()->isInstructor() && !$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('results.create')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -111,13 +111,13 @@ class ExamResultController extends Controller
 
     public function update(Request $request, $id)
     {
-        if (!$request->user()->isInstructor() && !$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('results.update')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $result = ExamResult::findOrFail($id);
 
-        if (($result->status === 'published' || $result->status === 'submitted') && !$request->user()->isAdmin()) {
+        if (($result->status === 'published' || $result->status === 'submitted') && !$request->user()->hasPermission('results.publish')) {
             return response()->json(['message' => 'Cannot modify submitted or published results'], 403);
         }
 
@@ -156,7 +156,7 @@ class ExamResultController extends Controller
 
     public function submit(Request $request, $id)
     {
-        if (!$request->user()->isInstructor() && !$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('results.update')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -178,7 +178,7 @@ class ExamResultController extends Controller
 
     public function publish(Request $request, $id)
     {
-        if (!$request->user()->isInstructor() && !$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('results.publish')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -197,7 +197,7 @@ class ExamResultController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        if (!$request->user()->isInstructor() && !$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('results.delete')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

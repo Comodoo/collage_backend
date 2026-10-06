@@ -29,6 +29,10 @@ class FeeController extends Controller
 
     public function store(Request $request)
     {
+        if (!$request->user()->hasPermission('fees.create')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:tuition,direct',
@@ -51,6 +55,10 @@ class FeeController extends Controller
 
     public function update(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('fees.update')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $fee = Fee::findOrFail($id);
 
         $request->validate([
@@ -73,8 +81,12 @@ class FeeController extends Controller
         return response()->json($fee->load('program'));
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('fees.delete')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $fee = Fee::findOrFail($id);
         $fee->delete();
         return response()->json(['message' => 'Fee deleted successfully']);

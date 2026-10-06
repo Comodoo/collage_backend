@@ -38,6 +38,44 @@ class User extends Authenticatable
         return $this->hasMany(Registration::class);
     }
 
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    public function getPermissionCodesAttribute()
+    {
+        return $this->roles
+            ->flatMap(fn ($role) => $role->permissions)
+            ->pluck('code')
+            ->unique()
+            ->values()
+            ->toArray();
+    }
+
+    public function getCanAccessAdminPanelAttribute()
+    {
+        return $this->isAdmin()
+            || $this->roles()->where('name', '!=', 'student')->exists()
+            || !empty($this->getPermissionCodesAttribute());
+    }
+
+    public function hasPermission(string $code): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+        return in_array($code, $this->getPermissionCodesAttribute(), true);
+    }
+
+    public function hasAnyPermission(array $codes): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+        return !empty(array_intersect($codes, $this->getPermissionCodesAttribute()));
+    }
+
     public function examResults()
     {
         return $this->hasMany(ExamResult::class, 'student_id');

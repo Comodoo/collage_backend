@@ -30,8 +30,8 @@ class CourseController extends Controller
     // Create a new course (Admin only)
     public function store(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized - Only admins can create courses'], 403);
+        if (!$request->user()->hasPermission('courses.create')) {
+            return response()->json(['message' => 'Unauthorized - Requires Add Courses permission'], 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -77,8 +77,8 @@ class CourseController extends Controller
     // Update course (Admin only)
     public function update(Request $request, $id)
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized - Only admins can update courses'], 403);
+        if (!$request->user()->hasPermission('courses.update')) {
+            return response()->json(['message' => 'Unauthorized - Requires Edit Courses permission'], 403);
         }
 
         $course = Course::findOrFail($id);
@@ -109,8 +109,8 @@ class CourseController extends Controller
     // Delete course (Admin only)
     public function destroy(Request $request, $id)
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized - Only admins can delete courses'], 403);
+        if (!$request->user()->hasPermission('courses.delete')) {
+            return response()->json(['message' => 'Unauthorized - Requires Delete Courses permission'], 403);
         }
 
         $course = Course::findOrFail($id);
@@ -122,8 +122,8 @@ class CourseController extends Controller
     // Assign instructor to course (Admin only)
     public function assignInstructor(Request $request, $courseId)
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized - Only admins can assign instructors'], 403);
+        if (!$request->user()->hasPermission('instructors.assign')) {
+            return response()->json(['message' => 'Unauthorized - Requires Assign Instructors permission'], 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -178,8 +178,8 @@ class CourseController extends Controller
     // Remove instructor assignment (Admin only)
     public function removeInstructor(Request $request, $courseId, $assignmentId)
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$request->user()->hasPermission('instructors.assign')) {
+            return response()->json(['message' => 'Unauthorized - Requires Assign Instructors permission'], 403);
         }
 
         $assignment = InstructorAssignment::where('course_id', $courseId)

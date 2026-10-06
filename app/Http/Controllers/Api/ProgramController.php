@@ -29,6 +29,10 @@ class ProgramController extends Controller
 
     public function store(Request $request)
     {
+        if (!$request->user()->hasPermission('programs.create')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $request->validate([
             'code' => 'required|string|max:50|unique:programs',
             'name' => 'required|string|max:255',
@@ -48,6 +52,10 @@ class ProgramController extends Controller
 
     public function update(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('programs.update')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $program = Program::findOrFail($id);
 
         $request->validate([
@@ -67,8 +75,12 @@ class ProgramController extends Controller
         return response()->json($program->load('department'));
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('programs.delete')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $program = Program::findOrFail($id);
         
         if ($program->registrations()->exists()) {
@@ -90,6 +102,10 @@ class ProgramController extends Controller
     // Department CRUD
     public function storeDepartment(Request $request)
     {
+        if (!$request->user()->hasPermission('departments.create')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $request->validate([
             'code' => 'required|string|max:50|unique:departments',
             'name' => 'required|string|max:255',
@@ -111,6 +127,10 @@ class ProgramController extends Controller
 
     public function updateDepartment(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('departments.update')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $department = Department::findOrFail($id);
 
         $request->validate([
@@ -132,8 +152,12 @@ class ProgramController extends Controller
         return response()->json($department);
     }
 
-    public function destroyDepartment($id)
+    public function destroyDepartment(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('departments.delete')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $department = Department::findOrFail($id);
         
         // Check if department has programs or courses

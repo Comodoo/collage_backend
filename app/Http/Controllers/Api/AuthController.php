@@ -37,11 +37,10 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'user' => $user,
+        return response()->json(array_merge($this->authPayload($user), [
             'token' => $token,
             'token_type' => 'Bearer',
-        ], 201);
+        ]), 201);
     }
 
     public function login(Request $request)
@@ -61,11 +60,10 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'user' => $user,
+        return response()->json(array_merge($this->authPayload($user), [
             'token' => $token,
             'token_type' => 'Bearer',
-        ]);
+        ]));
     }
 
     public function logout(Request $request)
@@ -79,7 +77,7 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json($this->authPayload($request->user()));
     }
 
     public function updateProfile(Request $request)
@@ -100,5 +98,31 @@ class AuthController extends Controller
             'message' => 'Profile updated successfully',
             'user' => $user,
         ]);
+    }
+
+    private function authPayload(User $user): array
+    {
+        $roles = $user->roles->pluck('name')->toArray();
+        if (empty($roles)) {
+            $roles = [$user->role];
+        }
+
+        $permissions = $user->roles
+            ->flatMap(fn ($role) => $role->permissions)
+            ->pluck('code')
+            ->unique()
+            ->values()
+            ->toArray();
+
+        if ($user->isAdmin() && !in_array('*', $permissions)) {
+            $permissions[] = '*';
+        }
+
+        return [
+            'user' => $user,
+            'roles' => $roles,
+            'permissions' => $permissions,
+            'can_access_admin_panel' => (bool) $user->can_access_admin_panel,
+        ];
     }
 }

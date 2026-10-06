@@ -23,6 +23,10 @@ class CreditController extends Controller
 
     public function store(Request $request)
     {
+        if (!$request->user()->hasPermission('credits.create')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $request->validate([
             'code' => 'required|string|max:50|unique:credits',
             'name' => 'required|string|max:255',
@@ -44,6 +48,10 @@ class CreditController extends Controller
 
     public function update(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('credits.update')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $credit = Credit::findOrFail($id);
 
         $request->validate([
@@ -65,8 +73,12 @@ class CreditController extends Controller
         return response()->json($credit);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('credits.delete')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $credit = Credit::findOrFail($id);
         $credit->delete();
         return response()->json(['message' => 'Credit deleted successfully']);

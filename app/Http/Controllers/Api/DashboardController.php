@@ -12,7 +12,7 @@ class DashboardController extends Controller
 {
     public function stats(Request $request)
     {
-        if (!$request->user() || !$request->user()->isAdmin()) {
+        if (!$request->user() || !$request->user()->hasPermission('dashboard.view')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -38,7 +38,7 @@ class DashboardController extends Controller
     }
     public function accountantStats(Request $request)
     {
-        if (!$request->user() || (!$request->user()->isAdmin() && !$request->user()->isAccountant())) {
+        if (!$request->user() || !$request->user()->hasPermission('payments.view')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

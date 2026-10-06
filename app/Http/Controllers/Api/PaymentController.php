@@ -28,8 +28,8 @@ class PaymentController extends Controller
             });
         }
 
-        // Accountants and admins can see all payments
-        if ($request->user()->isAccountant() || $request->user()->isAdmin()) {
+        // Staff (admin, accountant, permissioned roles) can see all payments
+        if ($request->user()->hasAnyPermission(['payments.view', 'payments.create', 'payments.update', 'payments.verify'])) {
             $query->with(['registration', 'student', 'processor']);
         }
 
@@ -116,7 +116,7 @@ class PaymentController extends Controller
 
     public function verifyCashPayment(Request $request, $id)
     {
-        if (!$request->user()->isAdmin() && !$request->user()->isAccountant()) {
+        if (!$request->user()->hasPermission('payments.verify')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

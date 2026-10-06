@@ -201,9 +201,9 @@ class RegistrationController extends Controller
 
     public function approve(Request $request, $id)
     {
-        // if (!$request->user()->isAdmin() && !$request->user()->isAccountant()) {
-        //     return response()->json(['message' => 'Unauthorized'], 403);
-        // }
+        if (!$request->user()->hasPermission('registrations.approve')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
         $registration = Registration::findOrFail($id);
 
@@ -232,7 +232,7 @@ class RegistrationController extends Controller
 
     public function reject(Request $request, $id)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('registrations.reject')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -256,6 +256,10 @@ class RegistrationController extends Controller
 
     public function update(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('registrations.update')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $registration = Registration::findOrFail($id);
 
         // Simple validation, assuming these are the fields being sent
@@ -281,6 +285,10 @@ class RegistrationController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('registrations.delete')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $registration = Registration::findOrFail($id);
         
         // Optional: Check authorization here, e.g., if isAdmin()

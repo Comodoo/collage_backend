@@ -9,7 +9,9 @@ use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProgramController;
 use App\Http\Controllers\Api\RegistrationController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\StaffController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -70,6 +72,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/staff/{id}', [StaffController::class, 'show']);
     Route::put('/staff/{id}', [StaffController::class, 'update']);
     Route::delete('/staff/{id}', [StaffController::class, 'destroy']);
+
+    // User Management
+    Route::post('/users/{userId}/reset-password', [UserController::class, 'resetPassword']);
+    Route::get('/students', [UserController::class, 'students']);
+
+    // Roles & Permissions (admin only)
+    Route::get('/roles', [RoleController::class, 'index']);
+    Route::get('/roles/permissions', [RoleController::class, 'permissions']);
+    Route::get('/roles/users', [RoleController::class, 'users']);
+    Route::post('/roles', [RoleController::class, 'store']);
+    Route::put('/roles/{id}', [RoleController::class, 'update']);
+    Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
+    Route::post('/roles/users/{userId}/assign', [RoleController::class, 'assignRoles']);
 
     // Admin & Accountant Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);

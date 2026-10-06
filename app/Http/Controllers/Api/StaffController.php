@@ -14,23 +14,28 @@ class StaffController extends Controller
     // Get all staff (non-students)
     public function index(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('staff.view')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $query = User::where('role', '!=', 'student');
+        $query = User::where('role', '!=', 'student')->with('roles:id,name');
 
         if ($request->has('role')) {
             $query->where('role', $request->role);
         }
 
-        return response()->json($query->orderBy('created_at', 'desc')->get());
+        $perPage = $request->integer('per_page', 50) ?: 50;
+        $page = $request->integer('page', 1) ?: 1;
+
+        return response()->json(
+            $query->orderBy('created_at', 'desc')->paginate($perPage, ['*'], 'page', $page)
+        );
     }
 
     // Create a new staff member
     public function store(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('staff.create')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -83,7 +88,7 @@ class StaffController extends Controller
     // Get a specific staff member
     public function show(Request $request, $id)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('staff.view')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -94,7 +99,7 @@ class StaffController extends Controller
     // Update staff member
     public function update(Request $request, $id)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('staff.update')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -142,7 +147,7 @@ class StaffController extends Controller
     // Delete a staff member
     public function destroy(Request $request, $id)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->hasPermission('staff.delete')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
