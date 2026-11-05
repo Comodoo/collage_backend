@@ -33,7 +33,9 @@ class PaymentController extends Controller
             $query->with(['registration', 'student', 'processor']);
         }
 
-        return response()->json($query->orderBy('created_at', 'desc')->get());
+        $perPage = min((int) $request->input('per_page', 100), 500);
+
+        return response()->json($query->orderBy('created_at', 'desc')->paginate($perPage));
     }
 
     public function store(Request $request)

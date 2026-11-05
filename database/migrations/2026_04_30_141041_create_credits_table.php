@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
-            $table->integer('value')->default(1);
+            $table->decimal('value', 5, 1)->default(1);
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();

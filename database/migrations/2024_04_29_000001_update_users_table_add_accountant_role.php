@@ -2,21 +2,76 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Adds the 'accountant' role to the users.role enum.
+     *
+     * Laravel 10 requires Doctrine DBAL for ->change(), which is not installed,
+     * so this uses driver-aware raw SQL. On a fresh install the original users
+     * migration already includes 'accountant', making this a safe no-op.
+     */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['student', 'instructor', 'admin', 'accountant'])->default('student')->change();
-        });
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            $hasAccountant = DB::table('information_schema.columns')
+                ->where('table_schema', DB::connection()->getDatabaseName())
+                ->where('table_name', 'users')
+                ->where('column_name', 'role')
+                ->where('column_type', 'like', '%accountant%')
+                ->exists();
+
+            if (!$hasAccountant) {
+                DB::statement("ALTER TABLE users MODIFY role ENUM('student', 'instructor', 'admin', 'accountant') NOT NULL DEFAULT 'student'");
+            }
+            return;
+        }
+
+        if ($driver === 'sqlite') {
+            $columnSql = DB::selectOne("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")->sql ?? '';
+            if (!str_contains($columnSql, 'accountant')) {
+                $this->rebuildSqliteUsers();
+            }
+        }
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['student', 'instructor', 'admin'])->default('student')->change();
+        // Intentionally no-op: reverting an enum is not supported without DBAL.
+    }
+
+    private function rebuildSqliteUsers(): void
+    {
+        DB::statement('PRAGMA foreign_keys = OFF');
+
+        Schema::rename('users', 'users_old');
+
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->enum('role', ['student', 'instructor', 'admin', 'accountant'])->default('student');
+            $table->string('phone')->nullable();
+            $table->date('date_of_birth')->nullable();
+            $table->enum('gender', ['male', 'female', 'other'])->nullable();
+            $table->rememberToken();
+            $table->timestamps();
         });
+
+        DB::statement('INSERT INTO users (id, first_name, last_name, email, email_verified_at, password, role, phone, date_of_birth, gender, remember_token, created_at, updated_at) SELECT id, first_name, last_name, email, email_verified_at, password, role, phone, date_of_birth, gender, remember_token, created_at, updated_at FROM users_old');
+
+        DB::statement('UPDATE sqlite_sequence SET seq = (SELECT MAX(id) FROM users) WHERE name = "users"');
+
+        Schema::drop('users_old');
+
+        DB::statement('PRAGMA foreign_keys = ON');
     }
 };

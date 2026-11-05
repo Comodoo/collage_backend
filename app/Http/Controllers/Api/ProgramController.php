@@ -6,19 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\Program;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 class ProgramController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Program::with('department')->where('is_active', true);
+        $version = (int) Cache::get('reference.programs.version', 1);
+
+        $programs = Cache::remember("reference.programs.{$version}.active", 600, function () {
+            return Program::with('department')
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+        });
 
         if ($request->has('department_id')) {
-            $query->where('department_id', $request->department_id);
+            $programs = $programs->where('department_id', (int) $request->department_id)->values();
         }
 
-        return response()->json($query->get());
+        return response()->json($programs);
     }
 
     public function show($id)
@@ -43,6 +51,7 @@ class ProgramController extends Controller
         ]);
 
         $program = Program::create($request->all());
+        Cache::increment('reference.programs.version');
         return response()->json($program->load('department'), 201);
     }
 
@@ -64,6 +73,7 @@ class ProgramController extends Controller
         ]);
 
         $program->update($request->all());
+        Cache::increment('reference.programs.version');
         return response()->json($program->load('department'));
     }
 
@@ -78,12 +88,18 @@ class ProgramController extends Controller
         }
 
         $program->delete();
+        Cache::increment('reference.programs.version');
         return response()->json(['message' => 'Program deleted successfully']);
     }
 
     public function departments()
     {
-        $departments = Department::where('is_active', true)->get();
+        $version = (int) Cache::get('reference.departments.version', 1);
+
+        $departments = Cache::remember("reference.departments.{$version}", 600, function () {
+            return Department::where('is_active', true)->orderBy('name')->get();
+        });
+
         return response()->json($departments);
     }
 
@@ -105,6 +121,9 @@ class ProgramController extends Controller
             'description' => $request->description,
             'is_active' => $request->is_active ?? true,
         ]);
+
+        Cache::increment('reference.departments.version');
+        Cache::increment('reference.programs.version');
 
         return response()->json($department, 201);
     }
@@ -129,6 +148,9 @@ class ProgramController extends Controller
             'is_active' => $request->is_active ?? $department->is_active,
         ]);
 
+        Cache::increment('reference.departments.version');
+        Cache::increment('reference.programs.version');
+
         return response()->json($department);
     }
 
@@ -144,6 +166,8 @@ class ProgramController extends Controller
         }
 
         $department->delete();
+        Cache::increment('reference.departments.version');
+        Cache::increment('reference.programs.version');
         return response()->json(['message' => 'Department deleted successfully']);
     }
 }

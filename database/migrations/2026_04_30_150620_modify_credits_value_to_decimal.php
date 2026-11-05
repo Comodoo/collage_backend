@@ -2,21 +2,28 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * Laravel 10 requires Doctrine DBAL for ->change(); this file uses driver-aware
+     * raw SQL instead. On a fresh install the credits table already declares the
+     * decimal value, so the raw MODIFY is harmless/a no-op.
      */
     public function up(): void
     {
         // Change credits value from integer to decimal
-        Schema::table('credits', function (Blueprint $table) {
-            $table->decimal('value', 5, 1)->change();
-        });
+        $driver = DB::connection()->getDriverName();
 
-        // Add credit_id to courses table (department_id already exists)
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            DB::statement('ALTER TABLE credits MODIFY value DECIMAL(5, 1) NOT NULL DEFAULT 1');
+        }
+
+        // Add credit_id to courses table
         Schema::table('courses', function (Blueprint $table) {
             $table->foreignId('credit_id')->nullable()->after('credit_hours')->constrained()->onDelete('set null');
         });
@@ -33,9 +40,6 @@ return new class extends Migration
             $table->dropColumn('credit_id');
         });
 
-        // Revert credits value to integer
-        Schema::table('credits', function (Blueprint $table) {
-            $table->integer('value')->change();
-        });
+        // Reverting the credits.decvalue type is intentionally skipped: it requires DBAL.
     }
 };

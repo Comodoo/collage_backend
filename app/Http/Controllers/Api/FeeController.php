@@ -5,26 +5,34 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Fee;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class FeeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Fee::with('program');
-        
-        // If not explicitely requested to see all, only show active
-        if (!$request->has('all')) {
-            $query->where('is_active', true);
-        }
-        
-        if ($request->has('program_id')) {
-            $query->where(function($q) use ($request) {
-                $q->where('program_id', $request->program_id)
-                  ->orWhere('type', 'direct');
-            });
-        }
-        
-        return response()->json($query->get());
+        $version = (int) Cache::get('reference.fees.version', 1);
+        $flags = ($request->has('all') ? 'all' : 'active') . '.' . ($request->input('program_id', 'x'));
+
+        $fees = Cache::remember("reference.fees.{$version}.{$flags}", 600, function () use ($request) {
+            $query = Fee::with('program');
+
+            // If not explicitely requested to see all, only show active
+            if (!$request->has('all')) {
+                $query->where('is_active', true);
+            }
+
+            if ($request->has('program_id')) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('program_id', $request->program_id)
+                        ->orWhere('type', 'direct');
+                });
+            }
+
+            return $query->get();
+        });
+
+        return response()->json($fees);
     }
 
     public function store(Request $request)
@@ -46,6 +54,7 @@ class FeeController extends Controller
         $data['total_amount'] = $total;
 
         $fee = Fee::create($data);
+        Cache::increment('reference.fees.version');
         return response()->json($fee->load('program'), 201);
     }
 
@@ -70,6 +79,7 @@ class FeeController extends Controller
         $data['total_amount'] = $total;
 
         $fee->update($data);
+        Cache::increment('reference.fees.version');
         return response()->json($fee->load('program'));
     }
 
@@ -77,6 +87,7 @@ class FeeController extends Controller
     {
         $fee = Fee::findOrFail($id);
         $fee->delete();
+        Cache::increment('reference.fees.version');
         return response()->json(['message' => 'Fee deleted successfully']);
     }
 }

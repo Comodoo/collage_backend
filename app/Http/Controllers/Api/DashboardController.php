@@ -12,7 +12,7 @@ class DashboardController extends Controller
 {
     public function stats(Request $request)
     {
-        if (!$request->user() || !$request->user()->isAdmin()) {
+        if (!$request->user() || !$request->user()->canAction('dashboard', 'view')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

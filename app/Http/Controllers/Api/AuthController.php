@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\PermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,9 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(protected PermissionService $permissions)
+    {
+    }
     public function register(Request $request)
     {
         $request->validate([
@@ -21,7 +25,7 @@ class AuthController extends Controller
             'phone' => 'nullable|string|max:20',
             'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|in:male,female,other',
-            'role' => 'nullable|in:student,instructor,admin,accountant',
+            'role' => 'nullable|in:student,instructor,admin,accountant,operations',
         ]);
 
         $user = User::create([
@@ -39,6 +43,9 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => $user,
+            'roles' => $this->permissions->rolesFor($user),
+            'permissions' => $this->permissions->codesFor($user),
+            'can_access_admin_panel' => $this->permissions->canAccessAdminPanel($user),
             'token' => $token,
             'token_type' => 'Bearer',
         ], 201);
@@ -63,6 +70,9 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => $user,
+            'roles' => $this->permissions->rolesFor($user),
+            'permissions' => $this->permissions->codesFor($user),
+            'can_access_admin_panel' => $this->permissions->canAccessAdminPanel($user),
             'token' => $token,
             'token_type' => 'Bearer',
         ]);
@@ -79,7 +89,12 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json([
+            'user' => $request->user(),
+            'roles' => $this->permissions->rolesFor($request->user()),
+            'permissions' => $this->permissions->codesFor($request->user()),
+            'can_access_admin_panel' => $this->permissions->canAccessAdminPanel($request->user()),
+        ]);
     }
 
     public function updateProfile(Request $request)

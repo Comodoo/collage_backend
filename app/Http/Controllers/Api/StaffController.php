@@ -14,23 +14,25 @@ class StaffController extends Controller
     // Get all staff (non-students)
     public function index(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->isAdmin() && !$request->user()->canAction('staff', 'view')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $query = User::where('role', '!=', 'student');
+        $query = User::with('roles')->where('role', '!=', 'student');
 
         if ($request->has('role')) {
             $query->where('role', $request->role);
         }
 
-        return response()->json($query->orderBy('created_at', 'desc')->get());
+        $perPage = min((int) $request->input('per_page', 100), 500);
+
+        return response()->json($query->orderBy('created_at', 'desc')->paginate($perPage));
     }
 
     // Create a new staff member
     public function store(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->isAdmin() && !$request->user()->canAction('staff', 'create')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -40,6 +42,8 @@ class StaffController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'role' => 'required|in:admin,instructor,accountant',
             'phone' => 'nullable|string|max:20',
+            'role_ids' => ['nullable', 'array'],
+            'role_ids.*' => ['string', 'exists:roles,id'],
         ];
 
         // If use_default_password is not true, validate custom password rules
@@ -74,31 +78,35 @@ class StaffController extends Controller
             'password' => Hash::make($password),
         ]);
 
+        if ($request->has('role_ids')) {
+            $user->roles()->sync($request->input('role_ids', []));
+        }
+
         return response()->json([
             'message' => 'Staff member created successfully',
-            'user' => $user
+            'user' => $user->load('roles')
         ], 201);
     }
 
     // Get a specific staff member
     public function show(Request $request, $id)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->isAdmin() && !$request->user()->canAction('staff', 'view')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $user = User::where('role', '!=', 'student')->findOrFail($id);
+        $user = User::with('roles')->where('role', '!=', 'student')->findOrFail($id);
         return response()->json($user);
     }
 
     // Update staff member
     public function update(Request $request, $id)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->isAdmin() && !$request->user()->canAction('staff', 'update')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $user = User::where('role', '!=', 'student')->findOrFail($id);
+        $user = User::with('roles')->where('role', '!=', 'student')->findOrFail($id);
 
         $rules = [
             'first_name' => 'sometimes|string|max:255',
@@ -106,6 +114,8 @@ class StaffController extends Controller
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id,
             'role' => 'sometimes|in:admin,instructor,accountant',
             'phone' => 'nullable|string|max:20',
+            'role_ids' => ['sometimes', 'array'],
+            'role_ids.*' => ['string', 'exists:roles,id'],
         ];
 
         if ($request->filled('password')) {
@@ -133,16 +143,21 @@ class StaffController extends Controller
 
         $user->update($data);
 
+        if ($request->has('role_ids')) {
+            $user->roles()->sync($request->input('role_ids', []));
+            app(\App\Services\PermissionService::class)->forget($user);
+        }
+
         return response()->json([
             'message' => 'Staff member updated successfully',
-            'user' => $user
+            'user' => $user->load('roles')
         ]);
     }
 
     // Delete a staff member
     public function destroy(Request $request, $id)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->isAdmin() && !$request->user()->canAction('staff', 'delete')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
